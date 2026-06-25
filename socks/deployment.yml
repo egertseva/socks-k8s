@@ -1,0 +1,49 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: socks
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: socks
+  template:
+    metadata:
+      labels:
+        app: socks
+    spec:
+      containers:
+        - name: socks
+          #public image from docker hub
+          image: evagertseva/socks-proxy:latest
+          ports:
+            - containerPort: 1080
+          workingDir: /home
+          #specify your server address here for username@server_address
+          command: ["ssh", "-D", "0.0.0.0:1080","-N", "username@server_address"]
+          volumeMounts:
+            - name: ssh-key-priv
+              mountPath: /root/.ssh/id_rsa
+              subPath: id_rsa
+              readOnly: true
+            - name: known-hosts
+              mountPath: /root/.ssh/known_hosts
+              subPath: known_hosts
+              readOnly: true
+      volumes:
+        #secret file with your private key
+        - name: ssh-key-priv
+          secret:
+            secretName: socks-priv-key
+            items:
+              - key: ssh-privatekey
+                path: id_rsa
+                mode: 0600
+        #secret file with known-hosts for ssh
+        - name: known-hosts
+          secret:
+            secretName: known-hosts
+            items:
+              - key: known-hosts
+                path: known_hosts
+                mode: 0600
